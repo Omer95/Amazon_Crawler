@@ -39,15 +39,23 @@ USER_AGENT_LIST = [
     'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
 ]
-CONST_URL='https://www.amazon.com/s/ref=nb_sb_ss_c_2_6?url=search-alias%3Dcomputers&field-keywords=laptops&sprefix=laptop%2Caps%2C355&crid=3DC6JC79BTUXG'
+CONST_URL='https://www.amazon.com/s/ref=nb_sb_ss_c_2_6?url=search-alias%3Delectronics&field-keywords=laptop&sprefix=laptop%2Caps%2C375&crid=20FTQKKKM0T1'
 
 def main():
-    
+    url=CONST_URL
     user_agent=gen_user_agent()
-    data=scrape_page(url, user_agent)
+    laptop_names, details=scrape_page(url, user_agent)
+
+    #for link in data:
+    #    print(link+'\n')
+    print(details)
+    print ('laptops: '+str(len(laptop_names))+' specs: '+str(len(details)))
+    #make a csv file with laptop details
+    make_csv_copy(laptop_names, details)
+
     #store all links in a set. These links are the next page links at n number of pages
     page_limit=20
-    links=fill_links(url, page_limit)
+    #links=fill_links(url, page_limit)
 #end main
 
 def scrape_page(url, user_agent):
@@ -61,20 +69,31 @@ def scrape_page(url, user_agent):
         exit()
     #parse html using beautiful soup
     html_soup=soup(html, 'html.parser')
+    #finding all the laptop items
     laptops=html_soup.findAll("li", {'class':"s-result-item celwidget "})
     #for each laptop, gather its data
     print(str(len(laptops)))
     titles=[]
+    all_specs=[]
     for laptop in laptops:
         title=laptop.find('h2', {"class":"a-size-medium s-inline s-access-title a-text-normal"})
         if title is not None:
             title=title.text
             print(title+'\n')
             titles.append(title)
+        #now find all the specifications of each laptop
+        laptop_specs=laptop.findAll('span', {'class':"a-list-item a-size-small a-color-secondary"})
+        #store each laptops specifications into a new list
+        specs=[]
+        for spec in laptop_specs:
+            spec_text=spec.find('span', {'class':"a-text-bold"})
+            specs.append(spec_text.text)
+        #end for
+        all_specs.append(specs)
         #end if
     #end for
-    print(html_soup)
-    return titles
+    #print(html_soup)
+    return titles, all_specs
 
 #end scrape_page
 
@@ -123,4 +142,33 @@ def get_sub_domain(url):
     except:
         return ''
     
+#make a csv file that stores laptop data
+def make_csv(laptop_names, details):
+    f=open('laptops.csv', 'w')
+    f.write('LAPTOP,DISPLAY,OPERATING SYSTEM,CPU,RAM,STORAGE\n')
+    if (len(laptop_names)==len(details)):
+        for i in range (len(details)):
+            if laptop_names[i] is not None:
+                detail=details[i]
+                entry=laptop_names[i]+','
+                for spec in detail:
+                    entry=entry+spec+','
+                entry=entry[:-1]
+                entry=entry+'\n'
+            f.write(entry)
+
+#make a csv file that stores laptop data COPY FOR DEBUGGING
+def make_csv_copy(laptop_names, details):
+    f=open('laptops_copy.csv', 'w')
+    f.write('LAPTOP,DISPLAY,OPERATING SYSTEM,CPU,RAM,STORAGE\n')
+    if (len(laptop_names)==len(details)):
+        print('writing to file')
+        for i in range (len(details)):
+            if laptop_names[i] is not None:
+                print('writing line ')
+                detail=details[i]
+                print(detail)
+                entry=laptop_names[i].replace(',','|')+','+detail[0]+','+detail[1]+','+detail[2]+','+detail[3]+','+detail[4]+'\n'
+            f.write(entry)
+
 main()
